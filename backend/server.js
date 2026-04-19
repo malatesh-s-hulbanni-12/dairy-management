@@ -17,15 +17,13 @@ const allowedOrigins = [
     'http://localhost:5174', 
     'http://127.0.0.1:5173', 
     'http://127.0.0.1:5174',
-    'https://*.vercel.app'  // ADDED for Vercel deployment
+    'https://*.vercel.app'
 ];
 
 app.use(cors({
     origin: function (origin, callback) {
-        // Allow requests with no origin (like mobile apps or curl)
         if (!origin) return callback(null, true);
         
-        // Check if origin matches any allowed pattern
         let allowed = false;
         for (const allowedOrigin of allowedOrigins) {
             if (allowedOrigin.includes('*')) {
@@ -42,8 +40,7 @@ app.use(cors({
         
         if (!allowed) {
             console.log('Blocked origin:', origin);
-            const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-            return callback(new Error(msg), false);
+            return callback(new Error('CORS not allowed'), false);
         }
         console.log('Allowed origin:', origin);
         return callback(null, true);
@@ -76,7 +73,7 @@ app.get('/', (req, res) => {
     res.json({ message: 'Dairy Milk Collection API is running' });
 });
 
-// Health check endpoint for Vercel
+// Health check endpoint
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'Server is running' });
 });
@@ -92,39 +89,48 @@ app.use((err, req, res, next) => {
     res.status(500).json({ success: false, message: err.message });
 });
 
-// Connect to MongoDB (only if not in Vercel serverless environment)
-if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
-    mongoose.connect(process.env.MONGODB_URI)
-        .then(() => {
-            console.log('✅ Connected to MongoDB Cloud (Atlas)');
-            app.listen(PORT, () => {
-                console.log(`🚀 Server running on port ${PORT}`);
-                console.log(`📍 API available at http://localhost:${PORT}`);
-                console.log('\n📋 Available endpoints:');
-                console.log('   GET    /api/suppliers');
-                console.log('   POST   /api/suppliers');
-                console.log('   PUT    /api/suppliers/:id');
-                console.log('   DELETE /api/suppliers/:id');
-                console.log('   POST   /api/suppliers/verify');
-                console.log('   POST   /api/entries');
-                console.log('   GET    /api/entries/today');
-                console.log('   GET    /api/entries/date/:date');
-                console.log('   GET    /api/entries/month/:yearMonth');
-                console.log('   GET    /api/entries/supplier/:supplierId');
-                console.log('   GET    /api/rates');
-                console.log('   POST   /api/rates');
-                console.log('   PUT    /api/rates/:id');
-                console.log('   DELETE /api/rates/:id');
-                console.log('   POST   /api/rates/reset');
-                console.log('   GET    /api/transactions');
-                console.log('   POST   /api/transactions');
-                console.log('   GET    /api/transactions/supplier/:supplierId\n');
-            });
-        })
-        .catch((err) => {
-            console.error('❌ MongoDB connection error:', err.message);
-            process.exit(1);
+// Connect to MongoDB - ALWAYS connect (even on Vercel)
+const connectDB = async () => {
+    try {
+        if (!process.env.MONGODB_URI) {
+            console.error('❌ MONGODB_URI is not defined in environment variables');
+            return;
+        }
+        
+        console.log('🔄 Connecting to MongoDB...');
+        await mongoose.connect(process.env.MONGODB_URI, {
+            serverSelectionTimeoutMS: 30000,
+            socketTimeoutMS: 45000,
+            connectTimeoutMS: 30000
         });
+        console.log('✅ Connected to MongoDB Cloud (Atlas)');
+    } catch (err) {
+        console.error('❌ MongoDB connection error:', err.message);
+    }
+};
+
+// Monitor connection events
+mongoose.connection.on('connected', () => {
+    console.log('Mongoose connected to MongoDB');
+});
+
+mongoose.connection.on('error', (err) => {
+    console.error('Mongoose connection error:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+    console.log('Mongoose disconnected');
+});
+
+// Call connectDB for both local and Vercel
+connectDB();
+
+// For local development server
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+        console.log(`🚀 Server running on port ${PORT}`);
+        console.log(`📍 API available at http://localhost:${PORT}`);
+    });
 }
 
 // For Vercel serverless - export the app
