@@ -8,7 +8,7 @@ export default defineConfig({
         port: 5174,
         proxy: {
             '/api': {
-                target: 'https://dairy-management-backend.vercel.app',
+                target: 'https://dairy-management-backend.vercel.app/',
                 changeOrigin: true
             }
         }
