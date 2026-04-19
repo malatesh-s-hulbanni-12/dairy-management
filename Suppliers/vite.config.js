@@ -3,12 +3,12 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
     plugins: [react()],
-    base: './',
+    base: '/',  // Change from './' to '/'
     server: {
-        port: 5174,
+        port: 5173,
         proxy: {
             '/api': {
-                target: 'https://dairy-management-backend.vercel.app',
+                target: 'https://dairy-management-backend.vercel.app/',
                 changeOrigin: true
             }
         }
@@ -16,6 +16,7 @@ export default defineConfig({
     build: {
         outDir: 'dist',
         assetsDir: 'assets',
+        sourcemap: false,
         rollupOptions: {
             output: {
                 manualChunks: undefined
