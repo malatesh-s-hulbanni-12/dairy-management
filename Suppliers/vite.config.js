@@ -3,12 +3,22 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
     plugins: [react()],
+    base: './',
     server: {
         port: 5174,
         proxy: {
             '/api': {
-                target: 'https://your-backend-url.vercel.app',
+                target: 'https://your-backend.vercel.app',
                 changeOrigin: true
+            }
+        }
+    },
+    build: {
+        outDir: 'dist',
+        assetsDir: 'assets',
+        rollupOptions: {
+            output: {
+                manualChunks: undefined
             }
         }
     }
